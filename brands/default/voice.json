@@ -14,5 +14,11 @@
     "tone": "",
     "instruct": "",
     "clone": null
+  },
+  "edgeTts": {
+    "voice": "vi-VN-HoaiMyNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "volume": "+0%"
   }
 }
