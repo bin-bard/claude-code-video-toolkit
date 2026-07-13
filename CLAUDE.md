@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 **Key capabilities:**
 - Programmatic video creation with Remotion (React-based)
-- AI voiceover generation with ElevenLabs or Qwen3-TTS
+- AI voiceover generation with ElevenLabs, Qwen3-TTS, or Edge TTS (free, incl. Vietnamese)
 - AI music generation with ACE-Step 1.5 (text-to-music, vocals, covers, stems)
 - Browser demo recording with Playwright
 - Asset processing with FFmpeg
@@ -139,6 +139,10 @@ python tools/voiceover.py --scene-dir public/audio/scenes --json
 
 # Using Qwen3-TTS (self-hosted, free alternative to ElevenLabs)
 python tools/voiceover.py --provider qwen3 --tone warm --scene-dir public/audio/scenes --json
+
+# Using Edge TTS (free, no API key — Vietnamese voices: vi-VN-HoaiMyNeural, vi-VN-NamMinhNeural)
+python tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json
+python tools/voiceover.py --provider edge-tts --speaker vi-VN-NamMinhNeural --rate +10% --script SCRIPT.md --output out.mp3
 
 # Single file (legacy)
 python tools/voiceover.py --script SCRIPT.md --output out.mp3
