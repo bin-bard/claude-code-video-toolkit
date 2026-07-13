@@ -185,7 +185,7 @@ def parse_args():
         epilog="""
 Examples:
   python tools/edgetts.py --text "Xin chao" --voice vi-VN-HoaiMyNeural --output hello.mp3
-  python tools/edgetts.py --text "Hello" --voice en-US-AriaNeural --rate +10%% --output out.mp3
+  python tools/edgetts.py --text "Hello" --voice en-US-AriaNeural --rate +10% --output out.mp3
   python tools/edgetts.py --list-voices --language vi
         """,
     )
