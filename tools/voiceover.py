@@ -56,16 +56,20 @@ def _get_elevenlabs_imports():
         print(
             "Error: ElevenLabs Python package not installed.\n"
             "\n"
-            "You have 3 options:\n"
+            "You have 4 options:\n"
             "\n"
             "  1. Install ElevenLabs:\n"
             "     pip install elevenlabs\n"
             "\n"
-            "  2. Use Qwen3-TTS instead (free, self-hosted):\n"
+            "  2. Use Edge-TTS instead (free, no API key or account needed):\n"
+            "     python3 tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json\n"
+            "     (Install with: pip install edge-tts. Includes Vietnamese voices.)\n"
+            "\n"
+            "  3. Use Qwen3-TTS instead (free, self-hosted):\n"
             "     python3 tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json\n"
             "     (Requires RunPod account — run: python3 tools/qwen3_tts.py --setup)\n"
             "\n"
-            "  3. Skip voiceover entirely:\n"
+            "  4. Skip voiceover entirely:\n"
             "     Videos render fine without audio. Add voiceover later when ready.",
             file=sys.stderr,
         )
@@ -868,16 +872,20 @@ def main():
             print(
                 "Error: No ElevenLabs API key found.\n"
                 "\n"
-                "You have 3 options:\n"
+                "You have 4 options:\n"
                 "\n"
                 "  1. Add an ElevenLabs key:\n"
                 "     echo \"ELEVENLABS_API_KEY=your_key\" >> .env\n"
                 "\n"
-                "  2. Use Qwen3-TTS instead (free, self-hosted):\n"
+                "  2. Use Edge-TTS instead (free, no API key or account needed):\n"
+                "     python3 tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json\n"
+                "     (Install with: pip install edge-tts. Includes Vietnamese voices.)\n"
+                "\n"
+                "  3. Use Qwen3-TTS instead (free, self-hosted):\n"
                 "     python3 tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json\n"
                 "     (Requires RunPod account — run: python3 tools/qwen3_tts.py --setup)\n"
                 "\n"
-                "  3. Skip voiceover entirely:\n"
+                "  4. Skip voiceover entirely:\n"
                 "     Videos render fine without audio. Add voiceover later when ready.",
                 file=sys.stderr,
             )
