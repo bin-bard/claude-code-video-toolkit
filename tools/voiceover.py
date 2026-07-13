@@ -670,8 +670,11 @@ def process_scene_directory(
             total_duration += result["duration_seconds"]
 
         if not json_output:
-            duration_str = f" ({result.get('duration_seconds', '?')}s{_pace_note(result)})"
-            print(f"  {s['mp3_file'].name}{duration_str}", file=sys.stderr)
+            if result.get("success"):
+                duration_str = f" ({result.get('duration_seconds', '?')}s{_pace_note(result)})"
+                print(f"  {s['mp3_file'].name}{duration_str}", file=sys.stderr)
+            else:
+                print(f"  {s['mp3_file'].name}  [FAILED: {result.get('error')}]", file=sys.stderr)
 
     return results, total_duration, total_chars
 
@@ -1005,9 +1008,12 @@ def main():
             max_wpm=args.max_wpm,
         )
 
-        # Build final result
+        # Build final result. A per-scene run is only a success if every scene
+        # produced audio — a partial run that reports success silently ships a
+        # video with a missing scene.
+        failed = [r for r in results if not r.get("success")]
         result = {
-            "success": True,
+            "success": not failed,
             "mode": "per_scene",
             "provider": provider,
             "scene_dir": str(scene_dir),
@@ -1016,6 +1022,8 @@ def main():
             "total_duration_frames_30fps": int(total_duration * 30),
             "scenes": results,
         }
+        if failed:
+            result["failed_scenes"] = len(failed)
         if provider == "elevenlabs":
             result["voice_id"] = voice_id
             result["model"] = args.model
@@ -1038,9 +1046,17 @@ def main():
         if args.json:
             print(json.dumps(result, indent=2))
         else:
-            print(f"\nPer-scene audio generated:", file=sys.stderr)
+            if failed:
+                print(
+                    f"\n{len(failed)} of {len(results)} scenes FAILED — no audio written for those scenes.",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"\nPer-scene audio generated:", file=sys.stderr)
             print(f"  Total: {total_duration:.1f}s ({int(total_duration * 30)} frames @ 30fps)", file=sys.stderr)
             print(f"  Characters: {total_chars}", file=sys.stderr)
+        if failed:
+            sys.exit(1)
         return
 
     # Single-file mode (original behavior)
