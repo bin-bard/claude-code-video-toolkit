@@ -4,7 +4,7 @@ description: Generate AI voiceover from script
 
 # Generate Voiceover
 
-Help me generate a voiceover for a Remotion video project using ElevenLabs or Qwen3-TTS.
+Help me generate a voiceover for a Remotion video project using ElevenLabs, Qwen3-TTS, or Edge-TTS.
 
 ## Project Integration
 
@@ -93,6 +93,7 @@ Before gathering configuration, check if we're in a project context:
    Options:
    - ElevenLabs (default) — high quality, paid API
    - Qwen3-TTS — self-hosted via RunPod, free/cheap, voice cloning
+   - Edge-TTS — free, no API key or account needed, includes Vietnamese voices
 
    If Qwen3-TTS is selected, check the project brand (from `project.json`) for a clone profile:
    1. Load `brands/{brand}/voice.json`
@@ -149,6 +150,12 @@ Before gathering configuration, check if we're in a project context:
      9. Custom instruction (type your own)
 
    Note: Per-scene tone overrides are supported with built-in speakers. Add `[tone: excited]` or `[instruct: Whisper gently]` as the first line of any scene `.txt` file. These are ignored when using a cloned voice.
+
+   *If Edge-TTS selected:*
+   - Voice (default: `vi-VN-HoaiMyNeural`, female). Options: `vi-VN-HoaiMyNeural` (female), `vi-VN-NamMinhNeural` (male), or run `python tools/edgetts.py --list-voices --language vi` to see more (drop `--language vi` for other languages).
+   - Rate adjustment (optional, default: `+0%`). E.g. `+10%` for faster, `-15%` for slower.
+
+   Edge-TTS has no tone presets or voice cloning — those are Qwen3-TTS-only features.
 
 3. **Execute Voiceover Generation**
 
@@ -231,6 +238,36 @@ Before gathering configuration, check if we're in a project context:
      --json
    ```
 
+   **Edge-TTS — Per-scene mode:**
+   ```bash
+   cd REPO_ROOT/PROJECT_DIR
+   python ../tools/voiceover.py \
+     --provider edge-tts \
+     --scene-dir public/audio/scenes \
+     --json
+   ```
+
+   **Edge-TTS — With voice + rate adjustment:**
+   ```bash
+   cd REPO_ROOT/PROJECT_DIR
+   python ../tools/voiceover.py \
+     --provider edge-tts \
+     --speaker vi-VN-NamMinhNeural \
+     --rate +10% \
+     --scene-dir public/audio/scenes \
+     --json
+   ```
+
+   **Edge-TTS — Single-file mode:**
+   ```bash
+   cd REPO_ROOT/PROJECT_DIR
+   python ../tools/voiceover.py \
+     --provider edge-tts \
+     --script "SCRIPT_PATH" \
+     --output "public/audio/voiceover.mp3" \
+     --json
+   ```
+
 4. **Report Results**
 
    **Per-scene results:**
@@ -266,8 +303,9 @@ Before gathering configuration, check if we're in a project context:
 
 - Voiceover tool: `tools/voiceover.py` (run from the toolkit root, or use `../tools/voiceover.py` from a project directory)
 - Qwen3-TTS tool: `tools/qwen3_tts.py`
+- Edge-TTS tool: `tools/edgetts.py` (also used to discover voices: `--list-voices --language vi`)
 - Config: `_internal/toolkit-registry.json` (voice ID)
-- API Key: `.env` file (`ELEVENLABS_API_KEY` for ElevenLabs, `RUNPOD_API_KEY` + `RUNPOD_QWEN3_TTS_ENDPOINT_ID` for Qwen3)
+- API Key: `.env` file (`ELEVENLABS_API_KEY` for ElevenLabs, `RUNPOD_API_KEY` + `RUNPOD_QWEN3_TTS_ENDPOINT_ID` for Qwen3). Edge-TTS needs no API key or account — just `pip install edge-tts`.
 
 ## Voice Settings Reference
 
@@ -319,7 +357,11 @@ Share these tips with the user:
 - If `RUNPOD_API_KEY` is missing, tell user to add it to `.env`
 - If `RUNPOD_QWEN3_TTS_ENDPOINT_ID` is missing, tell user to run `python tools/qwen3_tts.py --setup`
 
-**Both:**
+**Edge-TTS:**
+- If the `edge-tts` package is missing, tell user to run `pip install edge-tts` (no API key or account needed)
+- If unsure which voice to use, run `python tools/edgetts.py --list-voices --language vi` to list Vietnamese voices
+
+**All providers:**
 - If script file not found, offer to create a template
 - If scene directory empty, prompt to create scene scripts first
 
