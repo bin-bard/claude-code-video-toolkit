@@ -28,6 +28,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -89,6 +90,54 @@ async def _synthesize(text: str, output_path: str, voice: str, rate: str, pitch:
     await communicate.save(output_path)
 
 
+def _synthesize_with_retries(
+    text: str, output_path: str, voice: str, rate: str, pitch: str, volume: str,
+    retries: int, verbose: bool,
+) -> str | None:
+    """Synthesize, retrying transient backend failures. Returns None on success,
+    or an error string once the attempts are exhausted.
+
+    Microsoft's Edge TTS backend intermittently returns no audio for an
+    otherwise valid request ("No audio was received"); a retry usually clears
+    it. Left unretried, a single flaky scene silently drops out of a multi-scene
+    voiceover run.
+
+    On unrecoverable failure the output file is removed: a failed save can leave
+    a ZERO-BYTE .mp3 behind, and an empty file in a scene directory is worse than
+    no file — ffprobe reports no duration, Remotion renders silence rather than
+    erroring, and the file's mere presence reads as success.
+
+    Bad parameters (unknown voice, malformed rate/pitch/volume) surface as
+    ValueError from edge-tts's client-side validation, before any network call.
+    Those are deterministic, so they fail immediately rather than burning retries.
+    """
+    last_error: object = None
+    for attempt in range(1, retries + 1):
+        try:
+            asyncio.run(_synthesize(text, output_path, voice, rate, pitch, volume))
+        except ValueError as e:
+            Path(output_path).unlink(missing_ok=True)
+            return f"edge-tts rejected the request: {e}"
+        except Exception as e:
+            last_error = e
+        else:
+            out = Path(output_path)
+            if out.exists() and out.stat().st_size > 0:
+                return None
+            last_error = "edge-tts reported success but wrote no audio"
+
+        if attempt < retries:
+            if verbose:
+                print(
+                    f"  Attempt {attempt}/{retries} failed ({last_error}) — retrying...",
+                    file=sys.stderr,
+                )
+            time.sleep(attempt)  # 1s, then 2s
+
+    Path(output_path).unlink(missing_ok=True)
+    return f"edge-tts synthesis failed after {retries} attempts: {last_error}"
+
+
 def generate_audio(
     text: str,
     output_path: str,
@@ -98,6 +147,7 @@ def generate_audio(
     volume: str = "+0%",
     max_wpm: float | None = None,
     verbose: bool = True,
+    retries: int = 3,
 ) -> dict:
     """Generate one audio file using Microsoft Edge TTS.
 
@@ -105,6 +155,9 @@ def generate_audio(
     label ('fast'/'slow'/'ok'/None). If `max_wpm` is set, takes that exceed
     it are slowed in place with pitch-preserving ffmpeg atempo (floor 0.85x).
     See tools/pacing.py.
+
+    Transient backend failures are retried (see _synthesize_with_retries); a
+    run that ultimately fails leaves no file behind.
 
     Returns: {success, output, duration_seconds, duration_frames_30fps,
     script_chars, wpm, pacing} or {success: False, error} on failure.
@@ -120,10 +173,11 @@ def generate_audio(
     if verbose:
         print(f"Generating speech with Edge TTS (voice={voice})...", file=sys.stderr)
 
-    try:
-        asyncio.run(_synthesize(text, output_path, voice, rate, pitch, volume))
-    except Exception as e:
-        return {"success": False, "error": f"edge-tts synthesis failed: {e}"}
+    error = _synthesize_with_retries(
+        text, output_path, voice, rate, pitch, volume, retries, verbose
+    )
+    if error:
+        return {"success": False, "error": error}
 
     duration = get_audio_duration(output_path)
     result = {
