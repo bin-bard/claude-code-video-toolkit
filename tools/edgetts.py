@@ -2,9 +2,10 @@
 """
 Generate speech using Microsoft Edge TTS (free, no API key, no cloud GPU).
 
-Includes high-quality Vietnamese neural voices (vi-VN-HoaiMyNeural,
-vi-VN-NamMinhNeural) alongside ~300 other voices across languages. Used as
-a `voiceover.py --provider edge-tts` backend; also usable standalone.
+Defaults to an English voice; also includes high-quality Vietnamese neural
+voices (vi-VN-HoaiMyNeural, vi-VN-NamMinhNeural) alongside ~300 other voices
+across languages — pass --voice/--speaker to pick one. Used as a
+`voiceover.py --provider edge-tts` backend; also usable standalone.
 
 Usage:
     # Single utterance
@@ -41,7 +42,7 @@ VIETNAMESE_VOICES = {
     "vi-VN-NamMinhNeural": "Male",
 }
 
-DEFAULT_VOICE = "vi-VN-HoaiMyNeural"
+DEFAULT_VOICE = "en-US-AriaNeural"
 
 
 def _get_edge_tts_import():
@@ -284,7 +285,7 @@ def main():
         for v in voices:
             print(f"{v['ShortName']:<28} {v['Gender']:<8} {v['Locale']}")
         print()
-        print("Vietnamese defaults: " + ", ".join(f"{k} ({g})" for k, g in VIETNAMESE_VOICES.items()))
+        print("Vietnamese voices: " + ", ".join(f"{k} ({g})" for k, g in VIETNAMESE_VOICES.items()))
         return
 
     if not args.text:

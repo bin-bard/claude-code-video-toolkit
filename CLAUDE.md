@@ -140,7 +140,8 @@ python tools/voiceover.py --scene-dir public/audio/scenes --json
 # Using Qwen3-TTS (self-hosted, free alternative to ElevenLabs)
 python tools/voiceover.py --provider qwen3 --tone warm --scene-dir public/audio/scenes --json
 
-# Using Edge TTS (free, no API key — Vietnamese voices: vi-VN-HoaiMyNeural, vi-VN-NamMinhNeural)
+# Using Edge TTS (free, no API key — defaults to en-US-AriaNeural; also has
+# Vietnamese voices: vi-VN-HoaiMyNeural, vi-VN-NamMinhNeural)
 python tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json
 python tools/voiceover.py --provider edge-tts --speaker vi-VN-NamMinhNeural --rate +10% --script SCRIPT.md --output out.mp3
 

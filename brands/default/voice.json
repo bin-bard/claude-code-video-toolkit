@@ -16,7 +16,7 @@
     "clone": null
   },
   "edgeTts": {
-    "voice": "vi-VN-HoaiMyNeural",
+    "voice": "en-US-AriaNeural",
     "rate": "+0%",
     "pitch": "+0Hz",
     "volume": "+0%"

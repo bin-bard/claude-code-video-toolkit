@@ -175,7 +175,8 @@ Examples:
         default="Ryan",
         help="Speaker/voice name. For Qwen3-TTS: built-in speaker (default: Ryan; "
              "'python tools/qwen3_tts.py --list-voices' to see options). For Edge-TTS: "
-             "a voice name like 'vi-VN-HoaiMyNeural' (defaults to that voice when unset; "
+             "a voice name like 'en-US-AriaNeural' or 'vi-VN-HoaiMyNeural' "
+             "(defaults to en-US-AriaNeural when unset; "
              "'python tools/edgetts.py --list-voices' to see options).",
     )
     parser.add_argument(
@@ -467,7 +468,7 @@ def generate_batch_audio_qwen3(
 def generate_single_audio_edge_tts(
     script: str,
     output_path: Path,
-    voice: str = "vi-VN-HoaiMyNeural",
+    voice: str = "en-US-AriaNeural",
     rate: str = "+0%",
     pitch: str = "+0Hz",
     volume: str = "+0%",
@@ -848,7 +849,7 @@ def main():
 
     # Default voice for Edge-TTS when none given (CLI or brand)
     if provider == "edge-tts" and args.speaker == "Ryan":
-        args.speaker = "vi-VN-HoaiMyNeural"
+        args.speaker = "en-US-AriaNeural"
 
     # Resolve tone preset → instruct text for Qwen3
     if provider == "qwen3" and (args.tone or args.instruct):

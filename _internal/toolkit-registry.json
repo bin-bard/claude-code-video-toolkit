@@ -133,10 +133,10 @@
     },
     "generate-voiceover": {
       "path": ".claude/commands/generate-voiceover.md",
-      "description": "Generate TTS voiceover using ElevenLabs or Qwen3-TTS",
+      "description": "Generate TTS voiceover using ElevenLabs, Qwen3-TTS, or Edge-TTS",
       "status": "stable",
       "created": "2025-12-08",
-      "updated": "2026-02-19"
+      "updated": "2026-07-14"
     },
     "contribute": {
       "path": ".claude/commands/contribute.md",
@@ -206,6 +206,25 @@
       "options": {
         "pacingQC": "results include wpm + pacing label (fast/slow/ok); --max-wpm clamps fast takes with pitch-preserving atempo (floor 0.85x)"
       }
+    },
+    "edgetts": {
+      "path": "tools/edgetts.py",
+      "description": "Generate speech using Microsoft Edge TTS - free, no API key, ~300 voices incl. Vietnamese; also used as a voiceover.py --provider edge-tts backend",
+      "usage": "python tools/edgetts.py --text \"Hello\" --voice en-US-AriaNeural --output hello.mp3",
+      "status": "stable",
+      "category": "audio-generation",
+      "backend": "edge-tts",
+      "requires": "pip install edge-tts (no API key or account)",
+      "options": {
+        "voice": "Any edge-tts voice name (default: en-US-AriaNeural); 'python tools/edgetts.py --list-voices' to browse ~300 options",
+        "vietnameseVoices": ["vi-VN-HoaiMyNeural (female)", "vi-VN-NamMinhNeural (male)"],
+        "rate": "Speech rate delta, e.g. +10% or -15% (default: +0%)",
+        "pitch": "Pitch delta, e.g. +5Hz or -10Hz (default: +0Hz)",
+        "volume": "Volume delta, e.g. +10% or -20% (default: +0%)",
+        "max-wpm": "Pace clamp: slows takes exceeding this WPM with pitch-preserving atempo"
+      },
+      "created": "2026-07-13",
+      "updated": "2026-07-14"
     },
     "music": {
       "path": "tools/music.py",

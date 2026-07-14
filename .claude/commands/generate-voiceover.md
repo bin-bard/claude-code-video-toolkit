@@ -152,7 +152,7 @@ Before gathering configuration, check if we're in a project context:
    Note: Per-scene tone overrides are supported with built-in speakers. Add `[tone: excited]` or `[instruct: Whisper gently]` as the first line of any scene `.txt` file. These are ignored when using a cloned voice.
 
    *If Edge-TTS selected:*
-   - Voice (default: `vi-VN-HoaiMyNeural`, female). Options: `vi-VN-HoaiMyNeural` (female), `vi-VN-NamMinhNeural` (male), or run `python tools/edgetts.py --list-voices --language vi` to see more (drop `--language vi` for other languages).
+   - Voice (default: `en-US-AriaNeural`). Vietnamese options: `vi-VN-HoaiMyNeural` (female), `vi-VN-NamMinhNeural` (male), or run `python tools/edgetts.py --list-voices --language vi` to see more (drop `--language vi` for other languages, or omit `--language` entirely to browse all ~300 voices).
    - Rate adjustment (optional, default: `+0%`). E.g. `+10%` for faster, `-15%` for slower.
 
    Edge-TTS has no tone presets or voice cloning — those are Qwen3-TTS-only features.
