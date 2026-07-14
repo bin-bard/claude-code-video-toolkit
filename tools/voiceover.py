@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate voiceover audio using ElevenLabs or Qwen3-TTS.
+Generate voiceover audio using ElevenLabs, Qwen3-TTS, or Edge-TTS.
 
 Usage:
     # From script file (ElevenLabs, default)
@@ -25,6 +25,11 @@ Usage:
     python tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json
     python tools/voiceover.py --provider qwen3 --tone warm --scene-dir public/audio/scenes --json
     python tools/voiceover.py --provider qwen3 --instruct "Speak warmly" --script script.txt --output out.mp3
+
+    # Using Edge-TTS provider (free, no API key — good Vietnamese voices)
+    python tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json
+    python tools/voiceover.py --provider edge-tts --speaker vi-VN-NamMinhNeural --script script.txt --output out.mp3
+    python tools/voiceover.py --provider edge-tts --rate +10% --script script.txt --output out.mp3
 """
 from __future__ import annotations
 
@@ -51,16 +56,20 @@ def _get_elevenlabs_imports():
         print(
             "Error: ElevenLabs Python package not installed.\n"
             "\n"
-            "You have 3 options:\n"
+            "You have 4 options:\n"
             "\n"
             "  1. Install ElevenLabs:\n"
             "     pip install elevenlabs\n"
             "\n"
-            "  2. Use Qwen3-TTS instead (free, self-hosted):\n"
+            "  2. Use Edge-TTS instead (free, no API key or account needed):\n"
+            "     python3 tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json\n"
+            "     (Install with: pip install edge-tts. Includes Vietnamese voices.)\n"
+            "\n"
+            "  3. Use Qwen3-TTS instead (free, self-hosted):\n"
             "     python3 tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json\n"
             "     (Requires RunPod account — run: python3 tools/qwen3_tts.py --setup)\n"
             "\n"
-            "  3. Skip voiceover entirely:\n"
+            "  4. Skip voiceover entirely:\n"
             "     Videos render fine without audio. Add voiceover later when ready.",
             file=sys.stderr,
         )
@@ -69,7 +78,7 @@ def _get_elevenlabs_imports():
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Generate voiceover using ElevenLabs or Qwen3-TTS",
+        description="Generate voiceover using ElevenLabs, Qwen3-TTS, or Edge-TTS",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -81,6 +90,10 @@ Examples:
   python tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json
   python tools/voiceover.py --provider qwen3 --tone warm --scene-dir public/audio/scenes --json
   python tools/voiceover.py --provider qwen3 --instruct "Speak warmly" --script script.txt --output out.mp3
+
+  # Edge-TTS (free, no API key, good Vietnamese voices)
+  python tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json
+  python tools/voiceover.py --provider edge-tts --speaker vi-VN-NamMinhNeural --rate +10% --script script.txt --output out.mp3
         """,
     )
     parser.add_argument(
@@ -111,7 +124,7 @@ Examples:
         "--provider",
         type=str,
         default="elevenlabs",
-        choices=["elevenlabs", "qwen3"],
+        choices=["elevenlabs", "qwen3", "edge-tts"],
         help="TTS provider (default: elevenlabs)",
     )
 
@@ -160,7 +173,10 @@ Examples:
         "--speaker",
         type=str,
         default="Ryan",
-        help="Qwen3-TTS speaker name (default: Ryan). Use 'python tools/qwen3_tts.py --list-voices' to see options.",
+        help="Speaker/voice name. For Qwen3-TTS: built-in speaker (default: Ryan; "
+             "'python tools/qwen3_tts.py --list-voices' to see options). For Edge-TTS: "
+             "a voice name like 'vi-VN-HoaiMyNeural' (defaults to that voice when unset; "
+             "'python tools/edgetts.py --list-voices' to see options).",
     )
     parser.add_argument(
         "--language",
@@ -198,6 +214,26 @@ Examples:
         "--top-p",
         type=float,
         help="Qwen3-TTS nucleus sampling (default: model default ~0.8, range: 0.1-1.0)",
+    )
+
+    # Edge-TTS-specific options
+    parser.add_argument(
+        "--rate",
+        type=str,
+        default="+0%",
+        help="Edge-TTS speech rate delta, e.g. '+10%%' or '-15%%' (default: +0%%).",
+    )
+    parser.add_argument(
+        "--pitch",
+        type=str,
+        default="+0Hz",
+        help="Edge-TTS pitch delta, e.g. '+5Hz' or '-10Hz' (default: +0Hz).",
+    )
+    parser.add_argument(
+        "--volume",
+        type=str,
+        default="+0%",
+        help="Edge-TTS volume delta, e.g. '+10%%' or '-20%%' (default: +0%%).",
     )
 
     # Cloud GPU provider (for Qwen3-TTS)
@@ -428,6 +464,32 @@ def generate_batch_audio_qwen3(
     ]
 
 
+def generate_single_audio_edge_tts(
+    script: str,
+    output_path: Path,
+    voice: str = "vi-VN-HoaiMyNeural",
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
+    volume: str = "+0%",
+    max_wpm: float | None = None,
+) -> dict:
+    """Generate a single audio file from script text using Edge TTS. Returns result dict."""
+    from edgetts import generate_audio
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    return generate_audio(
+        text=script,
+        output_path=str(output_path),
+        voice=voice,
+        rate=rate,
+        pitch=pitch,
+        volume=volume,
+        verbose=False,
+        max_wpm=max_wpm,
+    )
+
+
 def process_scene_directory(
     scene_dir: Path,
     dry_run: bool = False,
@@ -451,6 +513,10 @@ def process_scene_directory(
     temperature: float | None = None,
     top_p: float | None = None,
     cloud: str = "runpod",
+    # Edge-TTS params (speaker doubles as the voice name)
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
+    volume: str = "+0%",
     max_wpm: float | None = None,
 ) -> list[dict]:
     """Process all .txt files in directory, generate .mp3 for each."""
@@ -574,6 +640,16 @@ def process_scene_directory(
                 cloud=cloud,
                 max_wpm=max_wpm,
             )
+        elif provider == "edge-tts":
+            result = generate_single_audio_edge_tts(
+                script=s["script"],
+                output_path=s["mp3_file"],
+                voice=speaker,
+                rate=rate,
+                pitch=pitch,
+                volume=volume,
+                max_wpm=max_wpm,
+            )
         else:
             result = generate_single_audio(
                 client=client,
@@ -594,8 +670,11 @@ def process_scene_directory(
             total_duration += result["duration_seconds"]
 
         if not json_output:
-            duration_str = f" ({result.get('duration_seconds', '?')}s{_pace_note(result)})"
-            print(f"  {s['mp3_file'].name}{duration_str}", file=sys.stderr)
+            if result.get("success"):
+                duration_str = f" ({result.get('duration_seconds', '?')}s{_pace_note(result)})"
+                print(f"  {s['mp3_file'].name}{duration_str}", file=sys.stderr)
+            else:
+                print(f"  {s['mp3_file'].name}  [FAILED: {result.get('error')}]", file=sys.stderr)
 
     return results, total_duration, total_chars
 
@@ -752,10 +831,24 @@ def main():
                 args.instruct = qwen3_cfg["instruct"]
             if qwen3_cfg.get("tone") and not args.tone and not args.instruct:
                 args.tone = qwen3_cfg["tone"]
+        elif provider == "edge-tts":
+            edge_cfg = voice_config.get("edgeTts", {})
+            if edge_cfg.get("voice") and args.speaker == "Ryan":
+                args.speaker = edge_cfg["voice"]
+            if edge_cfg.get("rate") and args.rate == "+0%":
+                args.rate = edge_cfg["rate"]
+            if edge_cfg.get("pitch") and args.pitch == "+0Hz":
+                args.pitch = edge_cfg["pitch"]
+            if edge_cfg.get("volume") and args.volume == "+0%":
+                args.volume = edge_cfg["volume"]
         elif provider == "elevenlabs":
             # Apply voice ID from brand if not explicitly provided
             if not args.voice_id and voice_config.get("voiceId") and voice_config["voiceId"] != "YOUR_VOICE_ID_HERE":
                 args.voice_id = voice_config["voiceId"]
+
+    # Default voice for Edge-TTS when none given (CLI or brand)
+    if provider == "edge-tts" and args.speaker == "Ryan":
+        args.speaker = "vi-VN-HoaiMyNeural"
 
     # Resolve tone preset → instruct text for Qwen3
     if provider == "qwen3" and (args.tone or args.instruct):
@@ -782,16 +875,20 @@ def main():
             print(
                 "Error: No ElevenLabs API key found.\n"
                 "\n"
-                "You have 3 options:\n"
+                "You have 4 options:\n"
                 "\n"
                 "  1. Add an ElevenLabs key:\n"
                 "     echo \"ELEVENLABS_API_KEY=your_key\" >> .env\n"
                 "\n"
-                "  2. Use Qwen3-TTS instead (free, self-hosted):\n"
+                "  2. Use Edge-TTS instead (free, no API key or account needed):\n"
+                "     python3 tools/voiceover.py --provider edge-tts --scene-dir public/audio/scenes --json\n"
+                "     (Install with: pip install edge-tts. Includes Vietnamese voices.)\n"
+                "\n"
+                "  3. Use Qwen3-TTS instead (free, self-hosted):\n"
                 "     python3 tools/voiceover.py --provider qwen3 --speaker Ryan --scene-dir public/audio/scenes --json\n"
                 "     (Requires RunPod account — run: python3 tools/qwen3_tts.py --setup)\n"
                 "\n"
-                "  3. Skip voiceover entirely:\n"
+                "  4. Skip voiceover entirely:\n"
                 "     Videos render fine without audio. Add voiceover later when ready.",
                 file=sys.stderr,
             )
@@ -817,7 +914,7 @@ def main():
 
         if not args.json:
             txt_count = len(list(scene_dir.glob("*.txt")))
-            provider_label = "Qwen3-TTS" if provider == "qwen3" else "ElevenLabs"
+            provider_label = {"qwen3": "Qwen3-TTS", "edge-tts": "Edge-TTS"}.get(provider, "ElevenLabs")
             print(f"Processing {txt_count} scene scripts in {scene_dir} ({provider_label})...", file=sys.stderr)
 
         if args.dry_run:
@@ -843,6 +940,9 @@ def main():
                 temperature=args.temperature,
                 top_p=args.top_p,
                 cloud=args.cloud,
+                rate=args.rate,
+                pitch=args.pitch,
+                volume=args.volume,
             )
             result = {
                 "dry_run": True,
@@ -861,6 +961,11 @@ def main():
                     "style": args.style,
                     "speed": args.speed,
                 }
+            elif provider == "edge-tts":
+                result["voice"] = args.speaker
+                result["rate"] = args.rate
+                result["pitch"] = args.pitch
+                result["volume"] = args.volume
             else:
                 result["speaker"] = args.speaker
                 result["language"] = args.language
@@ -897,12 +1002,18 @@ def main():
             temperature=args.temperature,
             top_p=args.top_p,
             cloud=args.cloud,
+            rate=args.rate,
+            pitch=args.pitch,
+            volume=args.volume,
             max_wpm=args.max_wpm,
         )
 
-        # Build final result
+        # Build final result. A per-scene run is only a success if every scene
+        # produced audio — a partial run that reports success silently ships a
+        # video with a missing scene.
+        failed = [r for r in results if not r.get("success")]
         result = {
-            "success": True,
+            "success": not failed,
             "mode": "per_scene",
             "provider": provider,
             "scene_dir": str(scene_dir),
@@ -911,9 +1022,16 @@ def main():
             "total_duration_frames_30fps": int(total_duration * 30),
             "scenes": results,
         }
+        if failed:
+            result["failed_scenes"] = len(failed)
         if provider == "elevenlabs":
             result["voice_id"] = voice_id
             result["model"] = args.model
+        elif provider == "edge-tts":
+            result["voice"] = args.speaker
+            result["rate"] = args.rate
+            result["pitch"] = args.pitch
+            result["volume"] = args.volume
 
         # Concat if requested
         if args.concat:
@@ -928,9 +1046,17 @@ def main():
         if args.json:
             print(json.dumps(result, indent=2))
         else:
-            print(f"\nPer-scene audio generated:", file=sys.stderr)
+            if failed:
+                print(
+                    f"\n{len(failed)} of {len(results)} scenes FAILED — no audio written for those scenes.",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"\nPer-scene audio generated:", file=sys.stderr)
             print(f"  Total: {total_duration:.1f}s ({int(total_duration * 30)} frames @ 30fps)", file=sys.stderr)
             print(f"  Characters: {total_chars}", file=sys.stderr)
+        if failed:
+            sys.exit(1)
         return
 
     # Single-file mode (original behavior)
@@ -960,6 +1086,11 @@ def main():
                 "style": args.style,
                 "speed": args.speed,
             }
+        elif provider == "edge-tts":
+            result["voice"] = args.speaker
+            result["rate"] = args.rate
+            result["pitch"] = args.pitch
+            result["volume"] = args.volume
         else:
             result["speaker"] = args.speaker
             result["language"] = args.language
@@ -976,6 +1107,9 @@ def main():
             if provider == "elevenlabs":
                 print(f"  Voice ID: {voice_id}")
                 print(f"  Model: {args.model}")
+            elif provider == "edge-tts":
+                print(f"  Voice: {args.speaker}")
+                print(f"  Rate: {args.rate}, Pitch: {args.pitch}, Volume: {args.volume}")
             else:
                 print(f"  Speaker: {args.speaker}")
                 print(f"  Language: {args.language}")
@@ -985,7 +1119,7 @@ def main():
 
     # Generate voiceover
     if not args.json:
-        provider_label = "Qwen3-TTS" if provider == "qwen3" else "ElevenLabs"
+        provider_label = {"qwen3": "Qwen3-TTS", "edge-tts": "Edge-TTS"}.get(provider, "ElevenLabs")
         print(f"Generating voiceover ({len(script)} chars, {provider_label})...", file=sys.stderr)
 
     if provider == "qwen3":
@@ -1000,6 +1134,16 @@ def main():
             temperature=args.temperature,
             top_p=args.top_p,
             cloud=args.cloud,
+            max_wpm=args.max_wpm,
+        )
+    elif provider == "edge-tts":
+        result = generate_single_audio_edge_tts(
+            script=script,
+            output_path=output_path,
+            voice=args.speaker,
+            rate=args.rate,
+            pitch=args.pitch,
+            volume=args.volume,
             max_wpm=args.max_wpm,
         )
     else:
@@ -1021,6 +1165,11 @@ def main():
     if provider == "elevenlabs":
         result["voice_id"] = voice_id
         result["model"] = args.model
+    elif provider == "edge-tts":
+        result["voice"] = args.speaker
+        result["rate"] = args.rate
+        result["pitch"] = args.pitch
+        result["volume"] = args.volume
 
     if args.json:
         print(json.dumps(result, indent=2))
